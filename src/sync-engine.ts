@@ -42,6 +42,7 @@ export async function rebuild(
   client: WikiClient,
   progress: vscode.Progress<{ message?: string; increment?: number }>,
   token: vscode.CancellationToken,
+  cleanupOrphaned: boolean = false,
 ): Promise<SyncResult> {
   const result: SyncResult = { added: 0, removed: 0, updated: 0, unchanged: 0, errors: 0, details: [] };
 
@@ -93,7 +94,9 @@ export async function rebuild(
   // Veraltete Sub-Pages löschen
   progress.report({ message: 'Veraltete Wiki-Seiten aufräumen…', increment: 0 });
   try {
-    const wikiSubPages = await client.listSubPages(config.basePath);
+    const wikiSubPages = cleanupOrphaned 
+      ? await client.listAllPagesInWiki() 
+      : await client.listSubPages(config.basePath);
     const expectedPaths = new Set(subPageObjects.map(o => getSubPagePath(config.basePath, o)));
     
     for (const page of wikiSubPages) {
@@ -103,8 +106,21 @@ export async function rebuild(
       if (!parsed) continue;
       
       if (!expectedPaths.has(page.path)) {
+        // SICHERHEITS-CHECK bei Deep Scan:
+        if (cleanupOrphaned) {
+           try {
+              const fullPage = await client.readPage(page.path);
+              const content = fullPage.content.trim().toLowerCase();
+              // Prüfe ob es wie eine von IDSamurai generierte Seite aussieht
+              if (!content.startsWith(`# ${parsed.type} `) && !content.includes('<!-- idsamurai')) {
+                  continue; // Keine Samurai Seite! Nicht löschen!
+              }
+           } catch {
+              continue; // Wenn wir sie nicht lesen können, nicht löschen.
+           }
+        }
+
         // Im Wiki vorhanden, aber nicht mehr lokal -> gnadenlos löschen (Codebase is Master)
-        
         try {
           await client.deletePage(page.path);
           result.removed++;

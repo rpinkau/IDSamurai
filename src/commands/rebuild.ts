@@ -37,6 +37,14 @@ export function registerRebuildCommand(
       return;
     }
 
+    const answer2 = await vscode.window.showInformationMessage(
+      'IDSamurai: Sollen auch alte, verwaiste Objekt-Seiten (z. B. ohne Unterordner) im gesamten Wiki gesucht und gelöscht werden?',
+      { modal: true },
+      'Ja, nach verwaisten Seiten suchen',
+      'Nein, nur aktuellen Ordner aufräumen'
+    );
+    const cleanupOrphaned = answer2 === 'Ja, nach verwaisten Seiten suchen';
+
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -45,7 +53,7 @@ export function registerRebuildCommand(
       },
       async (progress, token) => {
         try {
-          const result = await rebuild(config, client, progress, token);
+          const result = await rebuild(config, client, progress, token, cleanupOrphaned);
 
           outputChannel.clear();
           outputChannel.appendLine(`[${new Date().toLocaleTimeString()}] IDSamurai Rebuild abgeschlossen`);
