@@ -266,7 +266,7 @@ export function parseMainPageObjects(markdown: string): AlObject[] {
   // Beispiel: | My App | codeunit | 50000 | My Codeunit |
   const lines = markdown.split('\n');
   for (const line of lines) {
-    const match = /^\|\s*([^|]*?)\s*\|\s*([a-zA-Z\s]+)\s*\|\s*([\d.,]+)\s*\|\s*([^|]+?)\s*\|\s*$/.exec(line.trim());
+    const match = /^\|\s*([^|]*?)\s*\|\s*([a-zA-Z\s]+)\s*\|\s*([\d.,]+)\s*\|\s*([^|]+?)\s*\|\s*(.*?)\s*\|$/.exec(line.trim());
     if (match) {
       const type = match[2].replace(/\s/g, '').toLowerCase();
       // Überspringe den Tabellen-Header

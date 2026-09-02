@@ -4,3 +4,7 @@ dist/
 *.vsix
 .vscode-test/
 .DS_Store
+
+.doc/
+.agents/
+.vscode/
