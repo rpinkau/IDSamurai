@@ -3,7 +3,7 @@
   "displayName": "IDSamurai",
   "description": "Synchronizes Azure DevOps Wiki pages with Business Central AL source code",
   "icon": "images/icon.png",
-  "version": "1.9.19",
+  "version": "1.9.20",
   "license": "MIT",
   "publisher": "rpinkau",
   "bin": {
