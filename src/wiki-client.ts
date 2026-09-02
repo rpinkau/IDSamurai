@@ -228,6 +228,38 @@ export class WikiClient {
   }
 
   /**
+   * Listet ALLE Seiten im gesamten Wiki auf (recursionLevel=full).
+   */
+  async listAllPagesInWiki(): Promise<WikiPageRef[]> {
+    const url = `${this.baseUrl}?path=/&recursionLevel=full&api-version=7.1`;
+    const response = await this.request('GET', url);
+
+    if (response.status === 404) {
+      return [];
+    }
+    if (response.status !== 200) {
+      throw new Error(`listAllPagesInWiki fehlgeschlagen (${response.status}) für URL: ${url}\nResponse: ${response.body}`);
+    }
+
+    const data = JSON.parse(response.body);
+    const allPages: WikiPageRef[] = [];
+    
+    function traverse(page: any) {
+      if (page.path && page.path !== '/') {
+        allPages.push({ id: page.id, path: page.path });
+      }
+      if (page.subPages) {
+        for (const sp of page.subPages) {
+          traverse(sp);
+        }
+      }
+    }
+    traverse(data);
+    
+    return allPages;
+  }
+
+  /**
    * Führt einen HTTP-Request aus. Unterstützt GET, PUT, DELETE.
    * Handled 429 Rate-Limiting mit exponentiellem Backoff.
    */
