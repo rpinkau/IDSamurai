@@ -1,0 +1,441 @@
+{
+  "name": "id-samurai",
+  "displayName": "IDSamurai",
+  "description": "Synchronizes Azure DevOps Wiki pages with Business Central AL source code",
+  "icon": "images/icon.png",
+  "version": "1.9.19",
+  "license": "MIT",
+  "publisher": "rpinkau",
+  "bin": {
+    "idsamurai-mcp": "./dist/mcp/mcp-server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rpinkau/IDSamurai"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:.devops-wiki.json",
+    "onLanguage:al"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ids.sync",
+        "title": "IDS: Sync",
+        "category": "IDS",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "ids.rebuild",
+        "title": "IDS: Rebuild (komplett neu)",
+        "category": "IDS"
+      },
+      {
+        "command": "ids.dryRun",
+        "title": "IDS: Sync Dry Run (Vorschau)",
+        "category": "IDSamurai",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "ids.setPat",
+        "title": "IDS: PAT konfigurieren",
+        "category": "IDS"
+      },
+      {
+        "command": "ids.openPage",
+        "title": "IDS: Seite im Browser öffnen",
+        "category": "IDS",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "ids.nextId",
+        "title": "IDS: Nächste freie ID",
+        "category": "IDS"
+      },
+      {
+        "command": "ids.refactorId",
+        "title": "IDS: Objekt-ID ändern (Refactoring)",
+        "category": "IDSamurai"
+      },
+      {
+        "command": "ids.showRanges",
+        "title": "IDS: ID-Ranges anzeigen",
+        "category": "IDS",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "command": "ids.importLicense",
+        "title": "IDS: Ranges aus Lizenz-Datei ins Wiki importieren"
+      },
+      {
+        "command": "ids.refreshTree",
+        "title": "IDS: Tree aktualisieren",
+        "category": "IDS",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ids.testConnection",
+        "title": "IDS: Verbindungstest (Schreiben)",
+        "category": "IDS",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "ids.reclaimId",
+        "title": "IDS: Reclaim ID",
+        "category": "IDSamurai",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ids.openWikiUrl",
+        "title": "IDS: Wiki-Seite öffnen",
+        "category": "IDSamurai",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "ids.bulkReserve",
+        "title": "IDS: Bulk-Reservierung (Mehrere IDs)",
+        "category": "IDSamurai",
+        "icon": "$(layers)"
+      },
+      {
+        "command": "ids.resolveConflictLocal",
+        "title": "Lokal gewinnt (Namen ins Wiki übernehmen)",
+        "category": "IDSamurai",
+        "icon": "$(check)"
+      },
+      {
+        "command": "ids.resolveConflictWiki",
+        "title": "Wiki gewinnt (Neue ID vergeben)",
+        "category": "IDSamurai",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "ids.consumptionReport",
+        "title": "IDS: Consumption Report",
+        "category": "IDSamurai",
+        "icon": "$(graph-line)"
+      },
+      {
+        "command": "ids.rangeUsageReport",
+        "title": "IDS: Range & Usage Bericht (Details)",
+        "category": "IDSamurai",
+        "icon": "$(list-unordered)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ids",
+          "title": "IDSamurai",
+          "icon": "images/sidebar.svg"
+        }
+      ]
+    },
+    "views": {
+      "ids": [
+        {
+          "id": "ids.pages",
+          "name": "Objekte"
+        },
+        {
+          "id": "ids.ranges",
+          "name": "Freie Ranges"
+        },
+        {
+          "id": "ids.conflicts",
+          "name": "Konflikte",
+          "icon": "$(warning)"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "ids.sync",
+          "when": "view == ids.pages",
+          "group": "navigation"
+        },
+        {
+          "command": "ids.openPage",
+          "when": "view == ids.pages",
+          "group": "navigation"
+        },
+        {
+          "command": "ids.showRanges",
+          "when": "view == ids.pages"
+        },
+        {
+          "command": "ids.testConnection",
+          "when": "view == ids.pages"
+        },
+        {
+          "command": "ids.refreshTree",
+          "when": "view == ids.pages",
+          "group": "navigation"
+        },
+        {
+          "command": "ids.refreshTree",
+          "when": "view == ids.ranges",
+          "group": "navigation"
+        },
+        {
+          "command": "ids.bulkReserve",
+          "when": "view == ids.pages",
+          "group": "navigation"
+        },
+        {
+          "command": "ids.rangeUsageReport",
+          "when": "view == ids.pages || view == ids.ranges",
+          "group": "navigation"
+        },
+        {
+          "command": "ids.consumptionReport",
+          "when": "view == ids.pages || view == ids.ranges",
+          "group": "navigation"
+        },
+        {
+          "command": "ids.refreshTree",
+          "when": "view == ids.conflicts",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ids.resolveConflictLocal",
+          "when": "viewItem == al-object-conflict",
+          "group": "inline"
+        },
+        {
+          "command": "ids.resolveConflictWiki",
+          "when": "viewItem == al-object-conflict",
+          "group": "inline"
+        },
+        {
+          "command": "ids.reclaimId",
+          "when": "viewItem == al-object || viewItem == al-object-reclaimable || viewItem == al-object-conflict",
+          "group": "inline"
+        },
+        {
+          "command": "ids.openWikiUrl",
+          "when": "viewItem == al-object-reclaimable || viewItem == al-object-conflict",
+          "group": "inline"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "ids.refactorId",
+          "when": "editorLangId == al",
+          "group": "idsamurai@1"
+        }
+      ]
+    },
+    "languageModelTools": [
+      {
+        "name": "reserveId",
+        "displayName": "Reserve AL ID",
+        "modelDescription": "Reserves a new ID for an AL object using IDSamurai",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "The AL object type (e.g. table, page, codeunit)"
+            },
+            "name": {
+              "type": "string",
+              "description": "The AL object name"
+            }
+          },
+          "required": [
+            "type",
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "reserveIdBatch",
+        "displayName": "Reserve multiple AL IDs",
+        "modelDescription": "Reserves multiple IDs for AL objects at once",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "count": {
+                    "type": "number"
+                  },
+                  "consecutive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "feature_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "requests"
+          ]
+        }
+      },
+      {
+        "name": "reclaimId",
+        "displayName": "Reclaim/Release AL ID",
+        "modelDescription": "Releases a reserved AL ID that is no longer needed",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "id": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "checkIdStatus",
+        "displayName": "Check AL ID Status",
+        "modelDescription": "Checks if an AL ID is free, reserved in Wiki, or used locally",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "id": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "getRangeStats",
+        "displayName": "Get Range Stats",
+        "modelDescription": "Returns statistics about AL ID range usage",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "listObjects",
+        "displayName": "List AL Objects",
+        "modelDescription": "Lists all locally known AL objects, optionally filtered by type",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "getObjectInfo",
+        "displayName": "Get AL Object Info",
+        "modelDescription": "Returns details for a specific AL object (e.g. file path)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "id": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "validateAlFile",
+        "displayName": "Validate AL File IDs",
+        "modelDescription": "Validates IDs in an AL file for collisions and range boundaries",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "file_path"
+          ]
+        }
+      },
+      {
+        "name": "readWikiPage",
+        "displayName": "Read Wiki Page for ID",
+        "modelDescription": "Reads the Azure DevOps Wiki documentation for a specific AL object ID",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "id": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ]
+        }
+      }
+    ],
+    "configuration": {
+      "title": "IDSamurai",
+      "properties": {
+        "idsamurai.autoRefreshInterval": {
+          "type": "number",
+          "default": 5,
+          "description": "Intervall in Minuten, in dem IDSamurai im Hintergrund nach Änderungen im DevOps Wiki sucht (0 zum Deaktivieren)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && vsce package",
+    "publish": "npm run compile && vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^2.0.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "svgpath": "^2.6.0"
+  }
+}
