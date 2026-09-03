@@ -60,9 +60,8 @@ export function invalidateCache() {
   parsedObjectsCache.clear();
 }
 
-export function updateFileInCache(filePath: string, config: Config) {
-  // Finde die zugehörige appSource
-  let appName = 'Unknown';
+export function getAppForFile(filePath: string, config: Config): string | undefined {
+  let appName: string | undefined = undefined;
   for (const appSource of config.appSources) {
     const srcPath = resolvePath(appSource, appSource.srcPath);
     if (filePath.startsWith(srcPath)) {
@@ -70,12 +69,19 @@ export function updateFileInCache(filePath: string, config: Config) {
       if (fs.existsSync(appJsonPath)) {
         try {
           const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf-8'));
-          appName = appJson.name ?? appJson.Name ?? 'Unknown';
+          appName = appJson.name ?? appJson.Name;
         } catch { /* ignore */ }
       }
       break;
     }
   }
+  return appName;
+}
+
+export function updateFileInCache(filePath: string, config: Config) {
+  // Finde die zugehörige appSource
+  const appName = getAppForFile(filePath, config) ?? 'Unknown';
+
   
   const objs = parseObjectHeader(filePath, appName);
   if (objs && objs.length > 0) {
