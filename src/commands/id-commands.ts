@@ -1,7 +1,7 @@
-﻿import * as vscode from 'vscode';
+import * as vscode from 'vscode';
 import * as path from 'path';
 import { Config } from '../config';
-import { parseObjectsFromConfig, parseRanges } from '../al-parser';
+import { parseObjectsFromConfig, parseRanges, getAppForFile } from '../al-parser';
 import {
   getNextFreeId,
   reserveId,
@@ -43,9 +43,22 @@ export function registerNextIdCommand(
       return;
     }
 
+    let targetApp: string | undefined = undefined;
+    if (appRanges.length > 1) {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && path.extname(editor.document.fileName) === '.al') {
+         targetApp = getAppForFile(editor.document.uri.fsPath, config);
+      }
+      if (!targetApp) {
+        targetApp = await vscode.window.showQuickPick(appRanges.map(a => a.app), { placeHolder: 'Für welche App soll die ID reserviert werden?' });
+        if (!targetApp) return;
+      }
+    } else if (appRanges.length === 1) {
+      targetApp = appRanges[0].app;
+    }
     // Typ auswählen
     const selected = await vscode.window.showQuickPick(
-      types.map(t => ({ label: t, description: getTypeSummary(t, objects, appRanges) })),
+      types.map(t => ({ label: t, description: getTypeSummary(t, objects, appRanges, targetApp) })),
       { placeHolder: 'Objekttyp wählen…' }
     );
 
@@ -61,7 +74,7 @@ export function registerNextIdCommand(
       },
       async () => {
         try {
-          const suggestion = await reserveId(selected.label, objects, appRanges, client, config);
+          const suggestion = await reserveId(selected.label, objects, appRanges, client, config, undefined, undefined, undefined, targetApp);
           if (!suggestion) {
             vscode.window.showWarningMessage(`IDSamurai: Alle Ranges für "${selected.label}" sind voll!`);
             return;
@@ -184,8 +197,9 @@ function getTypeSummary(
   type: string,
   objects: ReturnType<typeof parseObjectsFromConfig>,
   appRanges: ReturnType<typeof parseRanges>,
+  targetApp?: string
 ): string {
-  const suggestion = getNextFreeId(type, objects, appRanges);
+  const suggestion = getNextFreeId(type, objects, appRanges, targetApp);
   if (!suggestion) {
     return 'Range voll!';
   }
@@ -238,6 +252,21 @@ export function registerBulkReserveCommand(
       'Ja, reservieren'
     );
     if (confirmation !== 'Ja, reservieren') return;
+    const appRanges = parseRanges(config);
+    let targetApp: string | undefined = undefined;
+    if (appRanges.length > 1) {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && path.extname(editor.document.fileName) === '.al') {
+         const { getAppForFile } = require('../al-parser');
+         targetApp = getAppForFile(editor.document.uri.fsPath, config);
+      }
+      if (!targetApp) {
+        targetApp = await vscode.window.showQuickPick(appRanges.map(a => a.app), { placeHolder: 'Für welche App soll die ID reserviert werden?' });
+        if (!targetApp) return;
+      }
+    } else if (appRanges.length === 1) {
+      targetApp = appRanges[0].app;
+    }
 
     // Schritt 3: Ausführung
     await vscode.window.withProgress(
@@ -249,7 +278,7 @@ export function registerBulkReserveCommand(
       async (progress) => {
         try {
           const objects = parseObjectsFromConfig(config);
-          const appRanges = parseRanges(config);
+          // appRanges already parsed above
           const reservedIds: number[] = [];
 
           // Fetch Wiki State ONCE for bulk reservation (H4)
@@ -260,7 +289,7 @@ export function registerBulkReserveCommand(
 
           for (let i = 0; i < amount; i++) {
             progress.report({ message: `Reserviere ID ${i + 1} von ${amount}...`, increment: (90 / amount) });
-            const suggestion = await reserveId(selectedType, objects, appRanges, client, config, cachedWikiSubPages, cachedMainPageContent);
+            const suggestion = await reserveId(selectedType, objects, appRanges, client, config, cachedWikiSubPages, cachedMainPageContent, undefined, targetApp);
             if (!suggestion) {
               vscode.window.showErrorMessage(`Bulk-Reservierung abgebrochen: Ranges für "${selectedType}" sind voll nach ${i} Reservierungen!`);
               break;

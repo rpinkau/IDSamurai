@@ -33,6 +33,7 @@ export function getNextFreeId(
   type: string,
   objects: AlObject[],
   appRanges: AppRanges[],
+  targetApp?: string
 ): IdSuggestion | null {
   const normalizedType = type.toLowerCase();
 
@@ -45,6 +46,14 @@ export function getNextFreeId(
 
   // Durch alle Apps und deren Ranges iterieren
   for (const ar of appRanges) {
+    if (targetApp) {
+      const arAppClean = ar.app.replace(/\s+/g, '').toLowerCase();
+      const targetAppClean = targetApp.replace(/\s+/g, '').toLowerCase();
+      if (arAppClean !== targetAppClean) {
+        continue;
+      }
+    }
+
     const typeRanges = ar.ranges[normalizedType];
     if (!typeRanges || typeRanges.length === 0) {
       continue;
@@ -82,7 +91,8 @@ export async function getNextFreeIdWithWiki(
   client: WikiClient,
   config: Config,
   cachedWikiSubPages?: WikiPageRef[],
-  cachedMainPageContent?: string
+  cachedMainPageContent?: string,
+  targetApp?: string
 ): Promise<IdSuggestion | null> {
   let appRanges = configRanges;
 
@@ -143,6 +153,14 @@ export async function getNextFreeIdWithWiki(
 
   let suggestion: IdSuggestion | null = null;
   outer: for (const ar of appRanges) {
+    if (targetApp) {
+      const arAppClean = ar.app.replace(/\s+/g, '').toLowerCase();
+      const targetAppClean = targetApp.replace(/\s+/g, '').toLowerCase();
+      if (arAppClean !== targetAppClean) {
+        continue;
+      }
+    }
+
     const typeRanges = ar.ranges[normalizedType];
     if (!typeRanges) continue;
     
@@ -183,14 +201,15 @@ export async function reserveId(
   config: Config,
   cachedWikiSubPages?: WikiPageRef[],
   cachedMainPageContent?: string,
-  featureName?: string
+  featureName?: string,
+  targetApp?: string
 ): Promise<IdSuggestion | null> {
   let retries = 5;
 
   while (retries > 0) {
     retries--;
 
-    const suggestion = await getNextFreeIdWithWiki(type, objects, appRanges, client, config, cachedWikiSubPages, cachedMainPageContent);
+    const suggestion = await getNextFreeIdWithWiki(type, objects, appRanges, client, config, cachedWikiSubPages, cachedMainPageContent, targetApp);
     if (!suggestion) {
       return null; // Keine freie ID mehr in den Ranges
     }

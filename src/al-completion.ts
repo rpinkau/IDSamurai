@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Config } from './config';
-import { AlObject, parseObjectsFromConfig, parseRanges, AppRanges } from './al-parser';
+import { AlObject, parseObjectsFromConfig, parseRanges, AppRanges, getAppForFile } from './al-parser';
 import { getNextFreeId, getNextFreeIdWithWiki, reserveId } from './id-manager';
 
 import { WikiClient } from './wiki-client';
@@ -24,7 +24,8 @@ async function getNextFreeFieldId(
   appRanges: AppRanges[],
   config: Config | null,
   client: WikiClient | null,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  targetApp?: string
 ): Promise<number | undefined> {
   outputChannel.appendLine(`[IntelliSense] Prüfe Feld IDs...`);
   const content = document.getText();
@@ -73,6 +74,13 @@ async function getNextFreeFieldId(
   }
   
   for (const app of appRanges) {
+    if (targetApp) {
+      const arAppClean = app.app.replace(/\s+/g, '').toLowerCase();
+      const targetAppClean = targetApp.replace(/\s+/g, '').toLowerCase();
+      if (arAppClean !== targetAppClean) {
+        continue;
+      }
+    }
     const ranges = app.ranges['tableextension'] || app.ranges['table'] || [];
     if (ranges.length > 0) {
       outputChannel.appendLine(`[IntelliSense] Finde Feld ID ${ranges[0].from}...`);
@@ -122,9 +130,11 @@ export function createAlCompletionProvider(
         return undefined;
       }
 
+      const targetApp = getAppForFile(document.uri.fsPath, config);
+
       if (isFieldMatch) {
         const client = getClient();
-        const nextFieldId = await getNextFreeFieldId(document, appRanges, config, client, outputChannel);
+        const nextFieldId = await getNextFreeFieldId(document, appRanges, config, client, outputChannel, targetApp);
         if (!nextFieldId) {
           // Keine Warnung, da dies bei Pages oder fehlerhaften Dateien normal ist
           return undefined;
@@ -157,9 +167,9 @@ export function createAlCompletionProvider(
       let suggestion;
       try {
         if (client) {
-          suggestion = await getNextFreeIdWithWiki(objectType, objects, appRanges, client, config);
+          suggestion = await getNextFreeIdWithWiki(objectType, objects, appRanges, client, config, undefined, undefined, targetApp);
         } else {
-          suggestion = getNextFreeId(objectType, objects, appRanges);
+          suggestion = getNextFreeId(objectType, objects, appRanges, targetApp);
         }
       } catch (e: any) {
         outputChannel.appendLine(`[IntelliSense] Fehler: ${e.message}`);
@@ -263,10 +273,11 @@ export function createAlCodeActionProvider(
 
       let newId: number | undefined;
       let replaceRange: vscode.Range | undefined;
+      const targetApp = getAppForFile(document.uri.fsPath, config);
       
       if (isFieldMatch) {
         const client = getClient();
-        const nextFieldId = await getNextFreeFieldId(document, appRanges, config, client, outputChannel);
+        const nextFieldId = await getNextFreeFieldId(document, appRanges, config, client, outputChannel, targetApp);
         if (!nextFieldId) {
           outputChannel.appendLine(`[QuickFix] Konnte keine freie Feld-ID ermitteln.`);
           return undefined;
@@ -288,9 +299,9 @@ export function createAlCodeActionProvider(
         let suggestion;
         try {
           if (client) {
-            suggestion = await getNextFreeIdWithWiki(objectType, objects, appRanges, client, config);
+            suggestion = await getNextFreeIdWithWiki(objectType, objects, appRanges, client, config, undefined, undefined, targetApp);
           } else {
-            suggestion = getNextFreeId(objectType, objects, appRanges);
+            suggestion = getNextFreeId(objectType, objects, appRanges, targetApp);
           }
         } catch (e: any) {
           outputChannel.appendLine(`[QuickFix] Fehler: ${e.message}`);
@@ -392,7 +403,9 @@ export function registerReserveAndInsertIdCommand(
         try {
           const objects = parseObjectsFromConfig(config);
           const appRanges = parseRanges(config);
-          const suggestion = await reserveId(objectType, objects, appRanges, client, config);
+          const targetApp = getAppForFile(document.uri.fsPath, config);
+          
+          const suggestion = await reserveId(objectType, objects, appRanges, client, config, undefined, undefined, undefined, targetApp);
           
           if (!suggestion) {
             vscode.window.showErrorMessage(`IDSamurai: Alle Ranges für "${objectType}" sind voll!`);
